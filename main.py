@@ -18,7 +18,7 @@ def main(args):
     with serial.Serial(args.device, BAUD_RATE, timeout=1, parity=PARITY, rtscts=RTSCTS, stopbits=STOP_BITS, bytesize=DATA_BITS) as ser:
         for command in commands:
             s = '>%s<' % command
-            ser.write(ascii(s))
+            ser.write(bytes(s, 'utf-8'))
             x = ser.read_until('<')
             print(x)
     print("Quitting...")
