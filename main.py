@@ -19,8 +19,14 @@ def main(args):
         for command in commands:
             s = '>%s<' % command
             ser.write(bytes(s, 'utf-8'))
-            x = ser.read_until('<')
-            print(x)
+            for i in range(0,10):
+                x = ser.read(1)
+                print(x)
+                if x == '<':
+                    print("END")
+                    break
+            #x = ser.read_until('<')
+            #print(x)
     print("Quitting...")
 
 
