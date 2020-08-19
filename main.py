@@ -13,20 +13,21 @@ def main(args):
     # Example commands
     commands = ['ON', 'SV;0x78', 'MUX;OFF', 'SYNC;A', 'SR;H', 'MP;0x000015 0x32',
                 'SC;0x0064 0x0000 0x00C8 0x0000 0x01F4 0x0000 0x0000',
-                'PW;0x00FA 0x00FA 0x00FA 0x00FA 0x00FA 0x00FA', 'T', ]
+                'PW;0x00FA 0x00FA 0x00FA 0x00FA 0x00FA 0x00FA', 'T', 'OFF', 'SOC']
 
-    with serial.Serial(args.device, BAUD_RATE, timeout=1, parity=PARITY, rtscts=RTSCTS, stopbits=STOP_BITS, bytesize=DATA_BITS) as ser:
+    with serial.Serial(args.device, BAUD_RATE, timeout=2, parity=PARITY, rtscts=RTSCTS, stopbits=STOP_BITS, bytesize=DATA_BITS) as ser:
         for command in commands:
             s = '>%s<' % command
             ser.write(bytes(s, 'utf-8'))
-            for i in range(0,10):
+            """for i in range(0,10):
                 x = ser.read(1)
                 print(x)
                 if x == '<':
                     print("END")
-                    break
+                    break"""
             #x = ser.read_until('<')
-            #print(x)
+            x = ser.read(6)
+            print(x)
     print("Quitting...")
 
 
