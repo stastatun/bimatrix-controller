@@ -6,8 +6,13 @@ class Controller:
     def __init__(self, device, baud_rate=921600, data_bits=serial.EIGHTBITS, parity=serial.PARITY_NONE,
                  stop_bits=serial.STOPBITS_ONE, rtscts=True):
         """ Initialize the controller"""
-        self.serial_ = serial.Serial(device, baud_rate, timeout=2, parity=parity, rtscts=rtscts, stopbits=stop_bits,
-                                     bytesize=data_bits)
+        try:
+            self.serial_ = serial.Serial(device, baud_rate, timeout=5, parity=parity, rtscts=rtscts, stopbits=stop_bits,
+                                         bytesize=data_bits)
+        except serial.SerialException:
+            import os
+            print("Error connecting")
+            os.exit(0)
 
     def __del__(self):
         self.serial_.close()
