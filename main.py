@@ -2,6 +2,7 @@ import time
 
 import serial
 import argparse
+import logging
 
 import controller
 
@@ -10,6 +11,17 @@ DATA_BITS = serial.EIGHTBITS
 PARITY = serial.PARITY_NONE
 STOP_BITS = serial.STOPBITS_ONE
 RTSCTS = True
+
+
+def debug_level(x: str):
+    levels = {
+        'debug': logging.DEBUG,
+        'info': logging.INFO,
+        'warning': logging.WARNING,
+        'error': logging.ERROR,
+        'critical': logging.CRITICAL
+    }
+    return levels[x.lower()]
 
 
 def commadline_mode(arg):
@@ -54,19 +66,20 @@ def predefined_mode(arg):
                         break
                 else:
                     print("Pass")"""
-def main(arg):
-    device = controller.Controller(arg.device)
+def main(args):
+    print("Starting...")
+
+    device = controller.Controller(args.device, logging_level=logging.DEBUG)
     commands = ['ON', 'SV;0x78', 'MUX;OFF', 'SYNC;A', 'SR;H', 'MP;0x000015 0x32',
                 'SC;0x0064 0x0000 0x00C8 0x0000 0x01F4 0x0000 0x0000',
                 'PW;0x00FA 0x00FA 0x00FA 0x00FA 0x00FA 0x00FA', 'T', 'OFF', 'SOC']
+    print("Started.")
 
     #for c in commands:
         #print(bytes(c, 'utf-8'))
     #commadline_mode(arg)
     #predefined_mode(arg)
-    print("Starting")
-    test = device.read_response_()
-    print(test)
+
     res = device.set_pulse_generator(True)
     print(res)
     battery_level = device.read_battery()
@@ -74,11 +87,14 @@ def main(arg):
     res = device.set_pulse_generator(False)
     print(res)
 
+    device.close_serial()
+
     print("Quitting...")
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Controller options')
     parser.add_argument('-d', '--device', help='Device serial port')
-    args = parser.parse_args()
-    main(args)
+    parser.add_argument('-l', '--logging_level', help='Logging level')
+    arguments = parser.parse_args()
+    main(arguments)

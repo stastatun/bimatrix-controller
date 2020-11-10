@@ -1,23 +1,47 @@
 import serial
-import time
+import logging
+
 
 class Controller:
 
     def __init__(self, device, baud_rate=921600, data_bits=serial.EIGHTBITS, parity=serial.PARITY_NONE,
-                 stop_bits=serial.STOPBITS_ONE, rtscts=True):
+                 stop_bits=serial.STOPBITS_ONE, rtscts=True, logging_level=logging.WARNING):
         """ Initialize the controller"""
+
+        logging.basicConfig(filename="", level=logging_level)
         try:
-            self.serial_ = serial.Serial(device, baud_rate, timeout=10, parity=parity, rtscts=rtscts, stopbits=stop_bits,
+            self.serial_ = serial.Serial(device, baud_rate, timeout=5, parity=parity, rtscts=rtscts, stopbits=stop_bits,
                                          bytesize=data_bits)
-        except serial.SerialException:
+
+            # The device seems to establish the connection little slowly,
+            # so just some test read before starting actual commands.
+            # The device when using Bluetooth connection sends random 'g' on new connections
+            try:
+                res = self.serial_.read(10)
+                logging.debug("{}, {}, {}".format(res, len(res), int.from_bytes(res, byteorder="big")))
+            except serial.SerialException as e:
+                print("Initial test read failed")
+                logging.error(e)
+
+        except serial.SerialException as e:
             print("Error connecting to serial port")
+            logging.error(e)
             exit(0)
 
     def __del__(self):
         try:
             self.serial_.close()
-        except serial.SerialException:
+        except serial.SerialException as e:
             print("Error closing serial port")
+            logging.error(e)
+            exit(0)
+
+    def close_serial(self):
+        try:
+            self.serial_.close()
+        except serial.SerialException as e:
+            print("Error closing serial port")
+            logging.error(e)
             exit(0)
 
     @staticmethod
@@ -39,6 +63,7 @@ class Controller:
                     break
             else:
                 break
+        print(res)
         return res
 
     # Common commands
