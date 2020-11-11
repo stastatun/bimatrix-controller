@@ -1,5 +1,7 @@
 import serial
+import array
 import logging
+from typing import Iterable
 
 
 class Controller:
@@ -52,12 +54,16 @@ class Controller:
     def to_bytes_(cmd):
         return bytes(cmd, 'ascii')
 
-    def send_command(self, command: str, param: int, num_bytes: int) -> bool:
+    @staticmethod
+    def command_builder(command: str, param: int, num_bytes: int) -> bytes:
         formatted = ">{};".format(command)
         cmd = bytes(formatted, 'ascii')
         cmd += param.to_bytes(num_bytes, byteorder='big')
         cmd += bytes('<', 'ascii')
 
+        return cmd
+
+    def send_command(self, cmd: bytes) -> bool:
         logging.debug(cmd)
 
         self.serial_.write(cmd)
@@ -84,17 +90,13 @@ class Controller:
     def set_current_range(self, current_range) -> bool:
         """Sets the current range H for high (up to 100mA) and L for Low (up to 10mA)"""
         cmd = ">SR;{}<".format(current_range)
+        cmd = self.to_bytes_(cmd)
 
-        logging.debug(cmd)
-
-        self.serial_.write(self.to_bytes_(cmd))
-        res = self.read_response_()
-
-        return self.res_to_bool_(res)
+        return self.send_command(cmd)
 
     def set_voltage(self, voltage: int) -> bool:
         """Sets voltage in volts (value between 70-150)"""
-        return self.send_command("SV", voltage, 1)
+        return self.send_command(self.command_builder("SV", voltage, 1))
 
     def set_pulse_generator(self, status: bool) -> bool:
         """Set pulse DC/DC pulse generator on or off
@@ -108,35 +110,25 @@ class Controller:
         else:
             cmd = ">OFF<"
 
-        logging.debug(cmd)
-
-        self.serial_.write(self.to_bytes_(cmd))
-        res = self.read_response_()
-
-        return self.res_to_bool_(res)
+        cmd = self.to_bytes_(cmd)
+        return self.send_command(cmd)
 
     def set_num_nplets(self, num: int) -> bool:
         """Set the number of n-plets to be generated (0 - 16777215)"""
-        return self.send_command('SN', num, 4)
+        return self.send_command(self.command_builder('SN', num, 4))
 
     def set_time_between(self, time_between: int) -> bool:
         """Set time between pulses in n-plet (1-255ms)"""
-        return self.send_command('ST', time_between, 1)
+        return self.send_command(self.command_builder('ST', time_between, 1))
 
     def set_delay(self, delay):
         """Set delay after trigger"""
-        return self.send_command('SD', delay, 4)
+        return self.send_command(self.command_builder('SD', delay, 4))
 
     def trigger_pulse_generator(self):
         """Sets pulse generators either active or not active"""
-        cmd = ">T<"
-        self.serial_.write(self.to_bytes_(cmd))
-
-        logging.debug(cmd)
-
-        res = self.read_response_()
-
-        return self.res_to_bool_(res)
+        cmd = self.to_bytes_(">T<")
+        return self.send_command(cmd)
 
     def read_battery(self):
         """Read remaining battery capacity"""
@@ -151,17 +143,31 @@ class Controller:
 
     # long protocol
 
-    def set_repetition_rate(self, num):
-        """Set n-plet repetition rate"""
-        pass
+    def set_repetition_rate(self, num=50) -> bool:
+        """Set n-plet repetition rate (1-400)"""
+        return self.send_command(self.command_builder('SF', num, 2))
 
-    def set_pulse_width(self, width):
-        """Set pulse width for every pulse in n-plet"""
-        pass
+    def set_pulse_width(self, widths: Iterable[int]):
+        """Set pulse width for every pulse in n-plet (50 - 1000 microseconds)"""
+        cmd = bytes('>PW;', 'ascii')
 
-    def set_amplitude(self, amplitude):
-        """Set amplitude of the pulses in n-plet"""
-        pass
+        for idx, num in enumerate(widths):
+            cmd += num.to_bytes(2, byteorder='big')
+
+        cmd += bytes('<', 'ascii')
+
+        return self.send_command(cmd)
+
+    def set_amplitude(self, amplitudes: Iterable[int]) -> bool:
+        """Set amplitude of the pulses in n-plet (0 - 1000) unit: w/10 or w/100"""
+        cmd = bytes('>SC;', 'ascii')
+
+        for idx, num in enumerate(amplitudes):
+            cmd += num.to_bytes(2, byteorder='big')
+
+        cmd += bytes('<', 'ascii')
+
+        return self.send_command(cmd)
 
     def set_mode(self, mode):
         """Set mode to either unipolar or bipolar"""
