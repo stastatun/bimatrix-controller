@@ -68,7 +68,7 @@ class Controller:
 
     # Common commands
 
-    def set_current_range(self, current_range):
+    def set_current_range(self, current_range) -> bool:
         """Sets the current range H for high (up to 100mA) and L for Low (up to 10mA)"""
         cmd = ">SR;{}<".format(current_range)
         self.serial_.write(self.to_bytes_(cmd))
@@ -76,9 +76,17 @@ class Controller:
 
         return self.res_to_bool_(res)
 
-    def set_voltage(self, voltage):
+    def set_voltage(self, voltage: int) -> bool:
         """Sets voltage in volts (value between 70-150)"""
-        pass
+        cmd = bytes(">SV;", 'ascii')
+        cmd += voltage.to_bytes(1, byteorder='big')
+        cmd += bytes('<', 'ascii')
+
+        print(cmd)
+        self.serial_.write(cmd)
+        res = self.read_response_()
+
+        return self.res_to_bool_(res)
 
     def set_pulse_generator(self, status: bool) -> bool:
         """Set pulse DC/DC pulse generator on or off
