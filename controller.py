@@ -63,14 +63,14 @@ class Controller:
                     break
             else:
                 break
-        print(res)
+        logging.info(res)
         return res
 
     # Common commands
 
     def set_current_range(self, current_range):
         """Sets the current range H for high (up to 100mA) and L for Low (up to 10mA)"""
-        cmd = ">SR;{}".format(current_range)
+        cmd = ">SR;{}<".format(current_range)
         self.serial_.write(self.to_bytes_(cmd))
         res = self.read_response_()
 
