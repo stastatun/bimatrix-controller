@@ -52,7 +52,7 @@ class Controller:
     def to_bytes_(cmd):
         return bytes(cmd, 'ascii')
 
-    def command_builder(self, command: str, param: int, num_bytes: int) -> bool:
+    def send_command(self, command: str, param: int, num_bytes: int) -> bool:
         formatted = ">{};".format(command)
         cmd = bytes(formatted, 'ascii')
         cmd += param.to_bytes(num_bytes, byteorder='big')
@@ -94,7 +94,7 @@ class Controller:
 
     def set_voltage(self, voltage: int) -> bool:
         """Sets voltage in volts (value between 70-150)"""
-        return self.command_builder("SV", voltage, 1)
+        return self.send_command("SV", voltage, 1)
 
     def set_pulse_generator(self, status: bool) -> bool:
         """Set pulse DC/DC pulse generator on or off
@@ -117,25 +117,31 @@ class Controller:
 
     def set_num_nplets(self, num: int) -> bool:
         """Set the number of n-plets to be generated (0 - 16777215)"""
-        return self.command_builder('SN', num, 4)
+        return self.send_command('SN', num, 4)
 
     def set_time_between(self, time_between: int) -> bool:
         """Set time between pulses in n-plet (1-255ms)"""
-        return self.command_builder('ST', time_between, 1)
+        return self.send_command('ST', time_between, 1)
 
     def set_delay(self, delay):
         """Set delay after trigger"""
-        pass
+        return self.send_command('SD', delay, 4)
 
     def trigger_pulse_generator(self):
         """Sets pulse generators either active or not active"""
-        pass
+        cmd = ">T<"
+        self.serial_.write(self.to_bytes_(cmd))
+
+        logging.debug(cmd)
+
+        res = self.read_response_()
+
+        return self.res_to_bool_(res)
 
     def read_battery(self):
         """Read remaining battery capacity"""
         cmd = ">SOC<"
-        cmd = bytes(cmd, 'utf-8')
-        self.serial_.write(cmd)
+        self.serial_.write(self.to_bytes_(cmd))
 
         logging.debug(cmd)
 
