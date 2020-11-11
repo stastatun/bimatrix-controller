@@ -52,6 +52,19 @@ class Controller:
     def to_bytes_(cmd):
         return bytes(cmd, 'ascii')
 
+    def command_builder(self, command: str, param: int, num_bytes: int) -> bool:
+        formatted = ">{};".format(command)
+        cmd = bytes(formatted, 'ascii')
+        cmd += param.to_bytes(num_bytes, byteorder='big')
+        cmd += bytes('<', 'ascii')
+
+        logging.debug(cmd)
+
+        self.serial_.write(cmd)
+        res = self.read_response_()
+
+        return self.res_to_bool_(res)
+
     def read_response_(self):
         ser = self.serial_
         res = ""
@@ -81,16 +94,7 @@ class Controller:
 
     def set_voltage(self, voltage: int) -> bool:
         """Sets voltage in volts (value between 70-150)"""
-        cmd = bytes(">SV;", 'ascii')
-        cmd += voltage.to_bytes(1, byteorder='big')
-        cmd += bytes('<', 'ascii')
-
-        logging.debug(cmd)
-
-        self.serial_.write(cmd)
-        res = self.read_response_()
-
-        return self.res_to_bool_(res)
+        return self.command_builder("SV", voltage, 1)
 
     def set_pulse_generator(self, status: bool) -> bool:
         """Set pulse DC/DC pulse generator on or off
@@ -111,22 +115,13 @@ class Controller:
 
         return self.res_to_bool_(res)
 
-    def set_num_nplets(self, num):
+    def set_num_nplets(self, num: int) -> bool:
         """Set the number of n-plets to be generated (0 - 16777215)"""
-        cmd = bytes(">SN;", 'ascii')
-        cmd += num.to_bytes(4, byteorder='big')
-        cmd += bytes('<', 'ascii')
+        return self.command_builder('SN', num, 4)
 
-        logging.debug(cmd)
-
-        self.serial_.write(cmd)
-        res = self.read_response_()
-
-        return self.res_to_bool_(res)
-
-    def set_time_between(self, time_between):
-        """Set time between pulses in n-plet"""
-        pass
+    def set_time_between(self, time_between: int) -> bool:
+        """Set time between pulses in n-plet (1-255ms)"""
+        return self.command_builder('ST', time_between, 1)
 
     def set_delay(self, delay):
         """Set delay after trigger"""
