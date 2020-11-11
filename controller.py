@@ -63,7 +63,7 @@ class Controller:
                     break
             else:
                 break
-        logging.info(res)
+        logging.debug(res)
         return res
 
     # Common commands
@@ -71,6 +71,9 @@ class Controller:
     def set_current_range(self, current_range) -> bool:
         """Sets the current range H for high (up to 100mA) and L for Low (up to 10mA)"""
         cmd = ">SR;{}<".format(current_range)
+
+        logging.debug(cmd)
+
         self.serial_.write(self.to_bytes_(cmd))
         res = self.read_response_()
 
@@ -82,7 +85,8 @@ class Controller:
         cmd += voltage.to_bytes(1, byteorder='big')
         cmd += bytes('<', 'ascii')
 
-        print(cmd)
+        logging.debug(cmd)
+
         self.serial_.write(cmd)
         res = self.read_response_()
 
@@ -100,14 +104,25 @@ class Controller:
         else:
             cmd = ">OFF<"
 
+        logging.debug(cmd)
+
         self.serial_.write(self.to_bytes_(cmd))
         res = self.read_response_()
 
         return self.res_to_bool_(res)
 
     def set_num_nplets(self, num):
-        """Set the number of n-plets to be generated"""
-        pass
+        """Set the number of n-plets to be generated (0 - 16777215)"""
+        cmd = bytes(">SN;", 'ascii')
+        cmd += num.to_bytes(4, byteorder='big')
+        cmd += bytes('<', 'ascii')
+
+        logging.debug(cmd)
+
+        self.serial_.write(cmd)
+        res = self.read_response_()
+
+        return self.res_to_bool_(res)
 
     def set_time_between(self, time_between):
         """Set time between pulses in n-plet"""
@@ -126,6 +141,8 @@ class Controller:
         cmd = ">SOC<"
         cmd = bytes(cmd, 'utf-8')
         self.serial_.write(cmd)
+
+        logging.debug(cmd)
 
         res = self.read_response_()
         battery_level = int.from_bytes(bytes(res[-2], 'ascii'), byteorder="big")
