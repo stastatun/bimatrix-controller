@@ -169,17 +169,45 @@ class Controller:
 
         return self.send_command(cmd)
 
-    def set_mode(self, mode):
+    def set_mode(self, mode: str) -> bool:
         """Set mode to either unipolar or bipolar"""
-        pass
+        if mode == 'unipolar':
+            cmd = '>MUX;OFF<'
+        elif mode == 'bipolar':
+            cmd = '>MUX;ON<'
+        else:
+            raise ValueError('No mode named: {}, use value unipolar or bipolar'.format(mode))
+        cmd = self.to_bytes_(cmd)
+        return self.send_command(cmd)
 
-    def set_common_electrode(self, electrode):
+    def set_common_electrode(self, electrode: str) -> bool:
         """Set common electrode to anode or cathode, unipolar only"""
-        pass
+        if not (electrode == 'C' or electrode == 'A'):
+            raise ValueError('No option: {}, use value "A" for anode and "C" for cathode')
+        cmd = '>ASYNC;{}<'.format(electrode)
+        cmd = self.to_bytes_(cmd)
+        return self.send_command(cmd)
 
-    def set_pulses_unipolar(self, output_channels):
+    def set_pulses_unipolar(self, output_channels, value_type: str):
         """Set n-plet pulses and output channels for each pulse, unipolar only"""
-        pass
+        cmd = bytes('>SA;', 'ascii')
+        if value_type == "hex":
+            for idx, channels in enumerate(output_channels):
+                value = bytes(bytearray.fromhex(channels))
+                cmd += value
+        else:
+            for i, channels in enumerate(output_channels):
+                value = 0
+                for j, c in enumerate(channels):
+                    if c == 0:
+                        continue
+                    value += pow(2, c-1)
+                cmd += value.to_bytes(3, byteorder='big')
+
+        cmd += bytes('<', 'ascii')
+        print(cmd)
+
+        return self.send_command(cmd)
 
     def set_pulses_bipolar(self, output_cathodes, output_anodes):
         """Set n-plet pulses and output channels cathode/anode pairs for each pulse, bipolar only"""
