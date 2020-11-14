@@ -13,7 +13,7 @@ STOP_BITS = serial.STOPBITS_ONE
 RTSCTS = True
 
 
-def debug_level(x: str):
+def log_level(x: str):
     levels = {
         'debug': logging.DEBUG,
         'info': logging.INFO,
@@ -69,7 +69,7 @@ def predefined_mode(arg):
 def main(args):
     print("Starting...")
 
-    device = controller.Controller(args.device, logging_level=logging.DEBUG)
+    device = controller.Controller(args.device, logging_level=log_level(args.logging_level))
     commands = ['ON', 'SV;0x78', 'MUX;OFF', 'SYNC;A', 'SR;H', 'MP;0x000015 0x32',
                 'SC;0x0064 0x0000 0x00C8 0x0000 0x01F4 0x0000 0x0000',
                 'PW;0x00FA 0x00FA 0x00FA 0x00FA 0x00FA 0x00FA', 'T', 'OFF', 'SOC']
@@ -87,6 +87,100 @@ def main(args):
     res = device.set_pulse_generator(False)
     print(res)
 
+    print("Test current range")
+    res = device.set_current_range('H')
+    print(res)
+    res = device.set_current_range('L')
+    print(res)
+
+    print("Test voltage")
+    res = device.set_voltage(150)
+    print(res)
+    res = device.set_voltage(70)
+    print(res)
+    res = device.set_voltage(85)
+    print(res)
+
+    print("Test num of n-plets")
+    res = device.set_num_nplets(0)
+    print(res)
+    res = device.set_num_nplets(16777215)
+    print(res)
+    res = device.set_num_nplets(14500)
+    print(res)
+
+    print("Test time between pulses")
+    res = device.set_time_between(255)
+    print(res)
+    res = device.set_time_between(1)
+    print(res)
+    res = device.set_time_between(126)
+    print(res)
+
+    print("Test delay")
+    res = device.set_delay(0)
+    print(res)
+    res = device.set_delay(16777215)
+    print(res)
+    res = device.set_delay(5000)
+    print(res)
+
+    print("Test trigger")
+
+    res = device.trigger_pulse_generator()
+    print(res)
+
+    print("Sleep for 5 seconds")
+    #time.sleep(5)
+
+    res = device.trigger_pulse_generator()
+    print(res)
+
+    print("Test n-plet repetition rate")
+    res = device.set_repetition_rate(1)
+    print(res)
+    res = device.set_repetition_rate(400)
+    print(res)
+
+    print("Test pulse widths")
+    res = device.set_pulse_width([50, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    print(res)
+
+    print("Test amplitude")
+    res = device.set_amplitude([50, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+    print(res)
+
+    print("Test mode")
+    res = device.set_mode('unipolar')
+    print(res)
+    #res = device.set_mode('bipolar')
+    #print(res)
+
+    print("Test common electrode")
+    res = device.set_common_electrode('A')
+    print(res)
+    res = device.set_common_electrode('C')
+    print(res)
+
+    print("Test unipolar channels")
+    res = device.set_pulses_unipolar(
+        ['800000', '400000', '200000', '100000', '080000', '040000', '020000', '010000',
+         '008000', '004000', '002000', '001000', '000800', '000400', '000200', '000100',
+         '000000', '000000', '000000', '000000', '000000', '000000', '000000', '000000'], value_type='hex')
+    print(res)
+    """res = device.set_pulses_unipolar(
+        [
+            [24], [23], [22], [21], [20], [19], [18], [17], [16], [15], [14],
+            [13], [12], [11], [10], [9], [8], [7], [6], [5], [4], [3], [2], [1]
+        ], value_type='list'
+    )"""
+    res = device.set_pulses_unipolar(
+        [
+            [24], [23], [0], [0], [0], [0], [0], [0], [0], [0], [0],
+            [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0]
+        ], value_type='list'
+    )
+    print(res)
     device.close_serial()
 
     print("Quitting...")
