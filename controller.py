@@ -63,9 +63,9 @@ class Controller:
     @staticmethod
     def command_builder(command: str, param: int, num_bytes: int) -> bytes:
         formatted = ">{};".format(command)
-        cmd = bytes(formatted, 'ascii')
+        cmd = Controller.to_bytes_(formatted)
         cmd += param.to_bytes(num_bytes, byteorder='big')
-        cmd += bytes('<', 'ascii')
+        cmd += Controller.to_bytes_('<')
 
         return cmd
 
@@ -144,8 +144,11 @@ class Controller:
         logging.debug(cmd)
 
         res = self.read_response_()
-        battery_level = int.from_bytes(bytes(res[-2], 'ascii'), byteorder="big")
-        return battery_level
+        if res.startswith('>SOC;'):
+            battery_level = int.from_bytes(self.to_bytes_(res[-2]), byteorder="big")
+            return battery_level
+        else:
+            return -1
 
     # long protocol
 
@@ -155,23 +158,23 @@ class Controller:
 
     def set_pulse_width(self, widths: Iterable[int]):
         """Set pulse width for every pulse in n-plet (50 - 1000 microseconds)"""
-        cmd = bytes('>PW;', 'ascii')
+        cmd = self.to_bytes_('>PW;')
 
         for idx, num in enumerate(widths):
             cmd += num.to_bytes(2, byteorder='big')
 
-        cmd += bytes('<', 'ascii')
+        cmd += self.to_bytes_('<')
 
         return self.send_command(cmd)
 
     def set_amplitude(self, amplitudes: Iterable[int]) -> bool:
         """Set amplitude of the pulses in n-plet (0 - 1000) unit: w/10 or w/100"""
-        cmd = bytes('>SC;', 'ascii')
+        cmd = self.to_bytes_('>SC;')
 
         for idx, num in enumerate(amplitudes):
             cmd += num.to_bytes(2, byteorder='big')
 
-        cmd += bytes('<', 'ascii')
+        cmd += self.to_bytes_('<')
 
         return self.send_command(cmd)
 
@@ -196,7 +199,7 @@ class Controller:
 
     def set_pulses_unipolar(self, output_channels, value_type: str = 'list') -> bool:
         """Set n-plet pulses and output channels for each pulse, unipolar only"""
-        cmd = bytes('>SA;', 'ascii')
+        cmd = self.to_bytes_('>SA;')
         if value_type == "hex":
             for idx, channels in enumerate(output_channels):
                 value = bytes(bytearray.fromhex(channels))
@@ -210,13 +213,13 @@ class Controller:
                     value += pow(2, c-1)
                 cmd += value.to_bytes(3, byteorder='big')
 
-        cmd += bytes('<', 'ascii')
+        cmd += self.to_bytes_('<')
 
         return self.send_command(cmd)
 
     def set_pulses_bipolar(self, channel_pairs, value_type: str = 'list') -> bool:
         """Set n-plet pulses and output channels cathode/anode pairs for each pulse, bipolar only"""
-        cmd = bytes(">CA;", 'ascii')
+        cmd = self.to_bytes_(">CA;")
         for x, y in channel_pairs:
             if value_type == 'hex':
                 cathode = bytes(bytearray.fromhex(x))
@@ -237,7 +240,7 @@ class Controller:
                 cmd += cathode.to_bytes(3, byteorder='big')
                 cmd += anode.to_bytes(3, byteorder='big')
 
-        cmd += bytes('<', 'ascii')
+        cmd += self.to_bytes_('<')
 
         return self.send_command(cmd)
 
