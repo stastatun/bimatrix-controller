@@ -188,7 +188,7 @@ class Controller:
         cmd = self.to_bytes_(cmd)
         return self.send_command(cmd)
 
-    def set_pulses_unipolar(self, output_channels, value_type: str):
+    def set_pulses_unipolar(self, output_channels, value_type: str = 'list') -> bool:
         """Set n-plet pulses and output channels for each pulse, unipolar only"""
         cmd = bytes('>SA;', 'ascii')
         if value_type == "hex":
@@ -205,10 +205,32 @@ class Controller:
                 cmd += value.to_bytes(3, byteorder='big')
 
         cmd += bytes('<', 'ascii')
-        print(cmd)
 
         return self.send_command(cmd)
 
-    def set_pulses_bipolar(self, output_cathodes, output_anodes):
+    def set_pulses_bipolar(self, channel_pairs, value_type: str = 'list') -> bool:
         """Set n-plet pulses and output channels cathode/anode pairs for each pulse, bipolar only"""
-        pass
+        cmd = bytes(">CA;", 'ascii')
+        for x, y in channel_pairs:
+            if value_type == 'hex':
+                cathode = bytes(bytearray.fromhex(x))
+                anode = bytes(bytearray.fromhex(y))
+                cmd += cathode
+                cmd += anode
+            else:
+                cathode = 0
+                anode = 0
+                for i, c in enumerate(x):
+                    if c == 0:
+                        continue
+                    cathode += pow(2, c - 1)
+                for i, c in enumerate(y):
+                    if c == 0:
+                        continue
+                    anode += pow(2, c - 1)
+                cmd += cathode.to_bytes(3, byteorder='big')
+                cmd += anode.to_bytes(3, byteorder='big')
+
+        cmd += bytes('<', 'ascii')
+
+        return self.send_command(cmd)
