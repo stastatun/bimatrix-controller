@@ -11,6 +11,12 @@ class Controller:
         """ Initialize the controller"""
 
         logging.basicConfig(filename="", level=logging_level)
+
+        self.mode = 'none'  # unipolar or bipolar
+        self.repetition_rate = 0
+        self.pulse_widths = []
+        self.time_between = 0
+
         try:
             self.serial_ = serial.Serial(device, baud_rate, timeout=5, parity=parity, rtscts=rtscts, stopbits=stop_bits,
                                          bytesize=data_bits)
@@ -232,5 +238,30 @@ class Controller:
                 cmd += anode.to_bytes(3, byteorder='big')
 
         cmd += bytes('<', 'ascii')
+
+        return self.send_command(cmd)
+
+    # Short protocol mode
+
+    def set_common_electrode_short(self, electrode) -> bool:
+        if not (electrode == 'C' or electrode == 'A'):
+            raise ValueError('No option: {}, use value "A" for anode and "C" for cathode')
+        cmd = '>SYNC;{}<'.format(electrode)
+        cmd = self.to_bytes_(cmd)
+
+        return self.send_command(cmd)
+
+    def set_output_channel_activity(self, output_channels, repetition_rate: int, value_type: str = 'list') -> bool:
+        cmd = self.to_bytes_('>MP;')
+        if value_type == 'hex':
+            cmd += bytes(bytearray.fromhex(output_channels))
+        else:
+            value = 0
+            for i, c in enumerate(output_channels):
+                value += pow(2, c - 1)
+            cmd += value.to_bytes(3, byteorder='big')
+
+        cmd += repetition_rate.to_bytes(1, byteorder='big')
+        cmd += self.to_bytes_('<')
 
         return self.send_command(cmd)

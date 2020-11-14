@@ -136,7 +136,7 @@ def main(args):
     res = device.trigger_pulse_generator()
     print(res)
 
-    print("Test n-plet repetition rate")
+    '''print("Test n-plet repetition rate")
     res = device.set_repetition_rate(1)
     print(res)
     res = device.set_repetition_rate(400)
@@ -153,8 +153,6 @@ def main(args):
     print("Test mode")
     res = device.set_mode('unipolar')
     print(res)
-    #res = device.set_mode('bipolar')
-    #print(res)
 
     print("Test common electrode")
     res = device.set_common_electrode('A')
@@ -178,9 +176,46 @@ def main(args):
         [
             [24], [23], [0], [0], [0], [0], [0], [0], [0], [0], [0],
             [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0], [0]
-        ], value_type='list'
+        ]
     )
     print(res)
+
+    print("Change to bipolar")
+    res = device.set_mode('bipolar')
+    print(res)
+
+    print("Test bipolar")
+    res = device.set_pulses_bipolar(
+        [('200000', '400000'), ('000001', '000002'), ('004000', '008000'), ('000000', '000000'), ('000000', '000000'),
+         ('000000', '000000'), ('000000', '000000'), ('000000', '000000'), ('000000', '000000'), ('000000', '000000'),
+         ('000000', '000000'), ('000000', '000000'), ('000000', '000000'), ('000000', '000000'), ('000000', '000000'),
+         ('000000', '000000'), ('000000', '000000'), ('000000', '000000'), ('000000', '000000'), ('000000', '000000'),
+         ('000000', '000000'), ('000000', '000000'), ('000000', '000000'), ('000000', '000000')], value_type='hex'
+    )
+    print(res)
+    res = device.set_pulses_bipolar(
+        [([22], [23]), ([1], [2]), ([15], [16]), ([0], [0]), ([0], [0]), ([0], [0]), ([0], [0]), ([0], [0]), ([0], [0]),
+         ([0], [0]), ([0], [0]), ([0], [0]), ([0], [0]), ([0], [0]), ([0], [0]), ([0], [0]), ([0], [0]), ([0], [0]),
+         ([0], [0]), ([0], [0]), ([0], [0]), ([0], [0]), ([0], [0]), ([0], [0])]
+    )
+    print(res)'''
+
+    print("Set unipolar")
+    res = device.set_mode('unipolar')
+    print(res)
+
+    print("Test short cathode&anode")
+    res = device.set_common_electrode_short('C')
+    print(res)
+    res = device.set_common_electrode_short('A')
+    print(res)
+
+    print("Test short output activity")
+    res = device.set_output_channel_activity('000015', 50, value_type='hex')
+    print(res)
+    res = device.set_output_channel_activity([1,3,5], 50)
+    print(res)
+
     device.close_serial()
 
     print("Quitting...")
