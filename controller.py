@@ -92,8 +92,8 @@ class Controller:
         t2 = 1/repetition_rate
         return t1 <= t2
 
-    def print_state(self) -> None:
-        print("""
+    def __str__(self) -> str:
+        return """
 Device state (Battery: {}%):
     Device mode: {}
         - unipolar common electrode: {}
@@ -112,8 +112,7 @@ Device state (Battery: {}%):
         """.format(self.battery_state, self.mode, self.common_electrode, self.output_channels, self.channel_pairs,
                    self.current_range, self.voltage, self.pulse_generator_dc_converter_status, self.num_nplets,
                    self.time_between, self.delay, self.pulse_generator_triggered, self.repetition_rate,
-                   self.pulse_widths, self.pulse_amplitudes, self.is_short_protocol))
-        print("Is current n-plet generation parameters possible: {}".format(self.check_nplet_parameter_validity()))
+                   self.pulse_widths, self.pulse_amplitudes, self.is_short_protocol)
 
     def send_command(self, cmd: bytes) -> bool:
         logging.debug(cmd)
