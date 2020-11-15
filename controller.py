@@ -81,6 +81,40 @@ class Controller:
 
         return cmd
 
+    def check_nplet_parameter_validity(self, pulse_widths=None, time_between=None, repetition_rate=None) -> bool:
+        if pulse_widths is None:
+            pulse_widths = self.pulse_widths
+        if time_between is None:
+            time_between = self.time_between
+        if repetition_rate is None:
+            repetition_rate = self.repetition_rate
+        t1 = sum(pulse_widths)*10**-6 + (len(pulse_widths)-1)*time_between*10**-3
+        t2 = 1/repetition_rate
+        return t1 <= t2
+
+    def print_state(self) -> None:
+        print("""
+Device state (Battery: {}%):
+    Device mode: {}
+        - unipolar common electrode: {}
+        - output channels (unipolar): {}
+        - channel pairs (bipolar): {}
+    Current range: {}, voltage: {}V
+    Current generator dc/dc converter is on: {}
+    Number of n-plets: {}
+    Time between pulses: {}ms
+    Delay after trigger: {}ms
+    Pulse generation is triggered: {}
+    N-plet repetition rate: {}pps
+    Pulse widths: {} (unit: μs)
+    Pulse amplitudes: {} (unit: mA)
+    Short protocol activated: {}
+        """.format(self.battery_state, self.mode, self.common_electrode, self.output_channels, self.channel_pairs,
+                   self.current_range, self.voltage, self.pulse_generator_dc_converter_status, self.num_nplets,
+                   self.time_between, self.delay, self.pulse_generator_triggered, self.repetition_rate,
+                   self.pulse_widths, self.pulse_amplitudes, self.is_short_protocol))
+        print("Is current n-plet generation parameters possible: {}".format(self.check_nplet_parameter_validity()))
+
     def send_command(self, cmd: bytes) -> bool:
         logging.debug(cmd)
 
@@ -247,7 +281,11 @@ class Controller:
 
         cmd += self.to_bytes_('<')
 
-        return self.send_command(cmd)
+        res = self.send_command(cmd)
+        if res:
+            self.pulse_widths = widths
+
+        return res
 
     def set_amplitude(self, amplitudes: List[int]) -> bool:
         """Set amplitude of the pulses in n-plet (0 - 1000) unit: w/10 or w/100"""
