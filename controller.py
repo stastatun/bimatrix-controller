@@ -65,19 +65,19 @@ class Controller:
             exit(0)
 
     @staticmethod
-    def res_to_bool_(res):
+    def _res_to_bool(res):
         return res == ">OK<"
 
     @staticmethod
-    def to_bytes_(cmd):
+    def _to_bytes(cmd):
         return bytes(cmd, 'ascii')
 
     @staticmethod
     def command_builder(command: str, param: int, num_bytes: int) -> bytes:
         formatted = ">{};".format(command)
-        cmd = Controller.to_bytes_(formatted)
+        cmd = Controller._to_bytes(formatted)
         cmd += param.to_bytes(num_bytes, byteorder='big')
-        cmd += Controller.to_bytes_('<')
+        cmd += Controller._to_bytes('<')
 
         return cmd
 
@@ -120,7 +120,7 @@ Device state (Battery: {}%):
         self.serial_.write(cmd)
         res = self.read_response_()
 
-        return self.res_to_bool_(res)
+        return self._res_to_bool(res)
 
     def read_response_(self):
         ser = self.serial_
@@ -147,7 +147,7 @@ Device state (Battery: {}%):
         else:
             raise ValueError("Current range must be set to 'high' or 'low'. Was set to: {}".format(current_range))
         cmd = ">SR;{}<".format(c)
-        cmd = self.to_bytes_(cmd)
+        cmd = self._to_bytes(cmd)
 
         res = self.send_command(cmd)
 
@@ -180,7 +180,7 @@ Device state (Battery: {}%):
         else:
             cmd = ">OFF<"
 
-        res = self.send_command(self.to_bytes_(cmd))
+        res = self.send_command(self._to_bytes(cmd))
         if res:
             self.pulse_generator_dc_converter_status = status
 
@@ -193,7 +193,7 @@ Device state (Battery: {}%):
         else:
             cmd = ">ON<"
 
-        res = self.send_command(self.to_bytes_(cmd))
+        res = self.send_command(self._to_bytes(cmd))
         if res:
             self.pulse_generator_dc_converter_status = not self.pulse_generator_dc_converter_status
 
@@ -234,7 +234,7 @@ Device state (Battery: {}%):
 
     def trigger_pulse_generator(self) -> bool:
         """Sets pulse generators either active or not active"""
-        res = self.send_command(self.to_bytes_(">T<"))
+        res = self.send_command(self._to_bytes(">T<"))
         if res:
             self.pulse_generator_triggered = not self.pulse_generator_triggered
 
@@ -243,13 +243,13 @@ Device state (Battery: {}%):
     def read_battery(self) -> int:
         """Read remaining battery capacity"""
         cmd = ">SOC<"
-        self.serial_.write(self.to_bytes_(cmd))
+        self.serial_.write(self._to_bytes(cmd))
 
         logging.debug(cmd)
 
         res = self.read_response_()
         if res.startswith('>SOC;'):
-            battery_level = int.from_bytes(self.to_bytes_(res[-2]), byteorder="big")
+            battery_level = int.from_bytes(self._to_bytes(res[-2]), byteorder="big")
             self.battery_state = battery_level
             return battery_level
         else:
@@ -273,12 +273,12 @@ Device state (Battery: {}%):
             raise ValueError("Pulse widths must be between 50 and 1000")
 
         w_pad = widths + (24-len(widths))*[0]
-        cmd = self.to_bytes_('>PW;')
+        cmd = self._to_bytes('>PW;')
 
         for idx, num in enumerate(w_pad):
             cmd += num.to_bytes(2, byteorder='big')
 
-        cmd += self.to_bytes_('<')
+        cmd += self._to_bytes('<')
 
         res = self.send_command(cmd)
         if res:
@@ -292,12 +292,12 @@ Device state (Battery: {}%):
             raise ValueError("Pulse amplitudes must be between 0 and 1000")
 
         a_pad = amplitudes + (24 - len(amplitudes)) * [0]
-        cmd = self.to_bytes_('>SC;')
+        cmd = self._to_bytes('>SC;')
 
         for idx, num in enumerate(a_pad):
             cmd += num.to_bytes(2, byteorder='big')
 
-        cmd += self.to_bytes_('<')
+        cmd += self._to_bytes('<')
 
         res = self.send_command(cmd)
         if res:
@@ -314,7 +314,7 @@ Device state (Battery: {}%):
         else:
             raise ValueError('No mode named: {}, use value unipolar or bipolar'.format(mode))
 
-        res = self.send_command(self.to_bytes_(cmd))
+        res = self.send_command(self._to_bytes(cmd))
         if res:
             self.mode = mode
 
@@ -330,7 +330,7 @@ Device state (Battery: {}%):
             raise ValueError('No option: {}, use value "anode" or "cathode" for cathode'.format(electrode))
         cmd = '>ASYNC;{}<'.format(e)
 
-        res = self.send_command(self.to_bytes_(cmd))
+        res = self.send_command(self._to_bytes(cmd))
         if res:
             self.common_electrode = electrode
             self.is_short_protocol = False
@@ -343,7 +343,7 @@ Device state (Battery: {}%):
             raise ValueError('Too many pulses defined. Maximum length for the output channels is 24, was {}'
                              .format(len(output_channels)))
 
-        cmd = self.to_bytes_('>SA;')
+        cmd = self._to_bytes('>SA;')
         if value_type == "hex":
             padded_output = output_channels + (24 - len(output_channels)) * ['000000']
             for idx, channels in enumerate(padded_output):
@@ -359,7 +359,7 @@ Device state (Battery: {}%):
                     value += pow(2, c-1)
                 cmd += value.to_bytes(3, byteorder='big')
 
-        cmd += self.to_bytes_('<')
+        cmd += self._to_bytes('<')
 
         res = self.send_command(cmd)
         if res:
@@ -373,7 +373,7 @@ Device state (Battery: {}%):
             raise ValueError('Too many pulses defined. Maximum length for the channels pairs is 24, was {}'
                              .format(len(channel_pairs)))
 
-        cmd = self.to_bytes_(">CA;")
+        cmd = self._to_bytes(">CA;")
         if value_type == 'hex':
             padded_pairs = channel_pairs + (24 - len(channel_pairs))*[('000000', '000000')]
             for x, y in padded_pairs:
@@ -397,7 +397,7 @@ Device state (Battery: {}%):
                 cmd += cathode.to_bytes(3, byteorder='big')
                 cmd += anode.to_bytes(3, byteorder='big')
 
-        cmd += self.to_bytes_('<')
+        cmd += self._to_bytes('<')
 
         res = self.send_command(cmd)
         if res:
@@ -416,7 +416,7 @@ Device state (Battery: {}%):
             raise ValueError('No option: {}, use value "anode" or "cathode" for cathode'.format(electrode))
         cmd = '>SYNC;{}<'.format(e)
 
-        res = self.send_command(self.to_bytes_(cmd))
+        res = self.send_command(self._to_bytes(cmd))
 
         if res:
             self.common_electrode = electrode
@@ -432,7 +432,7 @@ Device state (Battery: {}%):
         if value_type != 'hex' and len(output_channels) > 24:
             raise ValueError('Too many output channels defined. Max is 24, was {}'.format(len(output_channels)))
 
-        cmd = self.to_bytes_('>MP;')
+        cmd = self._to_bytes('>MP;')
         if value_type == 'hex':
             cmd += bytes(bytearray.fromhex(output_channels))
         else:
@@ -442,7 +442,7 @@ Device state (Battery: {}%):
             cmd += value.to_bytes(3, byteorder='big')
 
         cmd += repetition_rate.to_bytes(1, byteorder='big')
-        cmd += self.to_bytes_('<')
+        cmd += self._to_bytes('<')
 
         res = self.send_command(cmd)
         if res:
