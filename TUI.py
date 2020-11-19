@@ -8,10 +8,7 @@ import logging
 
 
 class TUI:
-    def __init__(self, device: Controller):
-
-        logging.basicConfig(filename="ui_log.log", level=logging.DEBUG)
-
+    def __init__(self, device: Controller, config_file=""):
         self.labels = [
             "Current range: {}, Voltage: {}, Mode: {}",
             "DC/DC Converter: {}",
@@ -25,10 +22,12 @@ class TUI:
             "Output channels (unipolar): {}",
             "Channel pairs (bipolar): {}",
             "Battery: {}%",
-            "Common electrode: {}"
+            "Common electrode: {}",
+            "Pulse generation parameters possible: {}"
         ]
         self.device = device
         self.master = py_cui.PyCUI(30, 10)
+
         self.master.set_title("Bimatrix controller (Battery: {}%)".format(device.read_battery()))
 
         span = 5
@@ -53,19 +52,23 @@ class TUI:
                                                            2, 5, column_span=span, center=False)
         self.delay = self.master.add_block_label(self.labels[6].format(device.delay),
                                                  3, 5, column_span=span, center=False)
+        self.valid = self.master.add_block_label(self.labels[13].format(False),
+                                                 4, 0, column_span=5, center=False)
         self.widths = self.master.add_block_label(self.labels[7].format(device.pulse_widths),
-                                                  4, 0, column_span=span, center=False)
+                                                  5, 0, column_span=10, center=False)
         self.amplitudes = self.master.add_block_label(self.labels[8].format(
             self._calculate_amplitudes(device.pulse_amplitudes, device.mode)),
-            5, 0, column_span=span, center=False)
+            6, 0, column_span=10, center=False)
         self.outputs = self.master.add_block_label(self.labels[9].format(device.output_channels),
-                                                   6, 0, column_span=span, center=False)
+                                                   7, 0, column_span=10, center=False)
         self.pairs = self.master.add_block_label(self.labels[10].format(device.channel_pairs),
-                                                 7, 0, column_span=span, center=False)
+                                                 8, 0, column_span=10, center=False)
 
         self.command_prompt = self.master.add_text_box("Command: ", 29, 0, column_span=10)
-        command_list1 = self.master.add_scroll_menu("Commands", 8, 0, row_span=8, column_span=10)
-        commands1 = [
+        self.command_history = self.master.add_scroll_menu("Command history", 17, 0, row_span=11, column_span=10)
+        self.command_list = self.master.add_scroll_menu("Commands", 9, 0, row_span=8, column_span=10)
+
+        commands = [
             "battery: Update battery information",
             "mode <mode>: Set stimulatio mode (unipolar or bipolar)",
             "range <range>: ",
@@ -81,11 +84,9 @@ class TUI:
             "high: x/10 mA, low: x/100 mA",
             "output [channels]: list of channels in format x,y,z;i,j,k",
             "pairs [channels]: list of channels pairs in format x;y x;y",
-            "common_electrode: set common electrode to cathode or anode"
-
+            "common_electrode: set common electrode to cathode or anode",
         ]
-        command_list1.add_item_list(commands1)
-        self.command_history = self.master.add_scroll_menu("Command history", 16, 0, row_span=12, column_span=10)
+        self.command_list.add_item_list(commands)
 
         self.command_prompt.add_key_command(py_cui.keys.KEY_ENTER, self.send_command)
 
@@ -100,6 +101,12 @@ class TUI:
 
         self.master.add_key_command(py_cui.keys.KEY_F_LOWER, self.increase_time_between)
         self.master.add_key_command(py_cui.keys.KEY_V_LOWER, self.decrease_time_between)
+
+        if config_file:
+            f = open(config_file, "r")
+            for line in f:
+                out = self._parse_input(line)
+                self.command_history.add_item(out)
 
         self.master.start()
 
@@ -153,7 +160,6 @@ class TUI:
     def decrease_time_between(self):
         self.change_time_between(step=-1)
 
-
     @staticmethod
     def _bool_to_string(status: bool) -> str:
         return "On" if status else "Off"
@@ -196,143 +202,152 @@ class TUI:
         return out
 
     def _parse_input(self, text: str) -> str:
-        out = text.lower()
-        parts = text.split()
-        cmd = parts[0]
-        params = parts[1:]
-        if cmd == 'battery':
-            self.device.read_battery()
-            self.master.set_title("Bimatrix controller (Battery: {}%)".format(self.device.battery_state))
-        elif cmd == 'mode':
-            if len(params) == 1:
-                out = self._input_func(out, params, self.device.set_mode,
-                                       self.stats.set_title, self.labels[0], self.device,
-                                       ["current_range", "voltage", "mode"])
-            else:
-                out = "Mode command requires one parameter"
-        elif cmd == 'range':
-            if len(params) == 1:
-                out = self._input_func(out, params, self.device.set_current_range,
-                                       self.stats.set_title, self.labels[0], self.device,
-                                       ["current_range", "voltage", "mode"])
-            else:
-                out = "Current range command requires one parameter"
-        elif cmd == 'voltage':
-            if len(params) == 1:
-                new_params = [int(params[0])]
-                out = self._input_func(out, new_params, self.device.set_voltage,
-                                       self.stats.set_title, self.labels[0], self.device,
-                                       ["current_range", "voltage", "mode"])
-            else:
-                out = "Voltage command requires one parameter"
-        elif cmd == 'dc':
-            if len(params) == 0:
-                out = self._input_func(out, params, self.device.toggle_pulse_generator,
-                                       self.converter.set_title, self.labels[1], self.device,
-                                       ["pulse_generator_dc_converter_status"])
-            elif len(params) == 1:
-                params = [params[0].lower() == 'on']
-                out = self._input_func(out, params, self.device.set_pulse_generator,
-                                       self.converter.set_title, self.labels[1], self.device,
-                                       ["pulse_generator_dc_converter_status"])
-            else:
-                out = "Dc: too many parameters, expected 0 or 1"
-        elif cmd == 'trigger':
-            if len(params) == 0:
-                out = self._input_func(out, params, self.device.trigger_pulse_generator,
-                                       self.pulse_generation.set_title, self.labels[2], self.device,
-                                       ["pulse_generator_triggered"])
-            else:
-                out = "Trigger: Too many parameters, expected 0"
-        elif cmd == 'nplets':
-            if len(params) == 1:
-                new_params = [int(params[0])]
-                out = self._input_func(out, new_params, self.device.set_num_nplets,
-                                       self.num_nplet.set_title, self.labels[3], self.device,
-                                       ["num_nplets"])
-            else:
-                out = "Number of n-plets: incorrent number of parameters, expected one"
-        elif cmd == 'time_between':
-            if len(params) == 1:
-                new_params = [int(params[0])]
-                out = self._input_func(out, new_params, self.device.set_time_between,
-                                       self.time_between.set_title, self.labels[4], self.device,
-                                       ["time_between"])
-            else:
-                out = "Time between: incorrent number of parameters, expected one"
-        elif cmd == 'repetition_rate':
-            if len(params) == 1:
-                new_params = [int(params[0])]
-                out = self._input_func(out, new_params, self.device.set_repetition_rate,
-                                       self.repetition_rate.set_title, self.labels[5], self.device,
-                                       ["repetition_rate"])
-            else:
-                out = "Repetition rate: incorrent number of parameters, expected one"
-        elif cmd == 'delay':
-            if len(params) == 1:
-                new_params = [int(params[0])]
-                out = self._input_func(out, new_params, self.device.set_delay,
-                                       self.delay.set_title, self.labels[6], self.device,
-                                       ["delay"])
-            else:
-                out = "Delay: incorrent number of parameters, expected one"
-        elif cmd == 'widths':
-            if 0 <= len(params) <= 24:
-                new_params = [[int(i) for i in params]]
-                out = self._input_func(out, new_params, self.device.set_pulse_width,
-                                       self.widths.set_title, self.labels[7], self.device,
-                                       ["pulse_widths"])
-            else:
-                out = "widths: incorrect number of parameters"
-        elif cmd == 'amplitudes':
-            if 0 <= len(params) <= 24:
-                new_params = [[int(i) for i in params]]
-                out = self._input_func(out, new_params, self.device.set_amplitude,
-                                       self.amplitudes.set_title, self.labels[8], self.device,
-                                       ["pulse_amplitudes"])
-                self.amplitudes.set_title(self.labels[8].format(self._calculate_amplitudes(
-                    self.device.pulse_amplitudes, self.device.current_range)))
-            else:
-                out = "amplitudes: incorrect number of parameters"
-        elif cmd == 'output':
-            if 0 <= len(params) <= 24:
-                new_params = []
-                for pulse in params:
-                    channels = pulse.split(',')
-                    new_channels = [int(i) for i in channels]
-                    new_params.append(new_channels)
-                out = self._input_func(out, [new_params], self.device.set_pulses_unipolar,
-                                       self.outputs.set_title, self.labels[9], self.device,
-                                       ["output_channels"])
-            else:
-                out = "outputs: incorrect number of parameters"
-        elif cmd == 'pairs':
-            if 0 <= len(params) <= 24:
-                new_params = []
-                for pulse in params:
-                    pair = pulse.split(';')
+        try:
+            out = text.lower()
+            parts = text.split()
+            cmd = parts[0]
+            params = parts[1:]
+            if cmd == 'battery':
+                self.device.read_battery()
+                self.master.set_title("Bimatrix controller (Battery: {}%)".format(self.device.battery_state))
+            elif cmd == 'mode':
+                if len(params) == 1:
+                    out = self._input_func(out, params, self.device.set_mode,
+                                           self.stats.set_title, self.labels[0], self.device,
+                                           ["current_range", "voltage", "mode"])
+                else:
+                    out = "Mode command requires one parameter"
+            elif cmd == 'range':
+                if len(params) == 1:
+                    out = self._input_func(out, params, self.device.set_current_range,
+                                           self.stats.set_title, self.labels[0], self.device,
+                                           ["current_range", "voltage", "mode"])
+                else:
+                    out = "Current range command requires one parameter"
+            elif cmd == 'voltage':
+                if len(params) == 1:
+                    new_params = [int(params[0])]
+                    out = self._input_func(out, new_params, self.device.set_voltage,
+                                           self.stats.set_title, self.labels[0], self.device,
+                                           ["current_range", "voltage", "mode"])
+                else:
+                    out = "Voltage command requires one parameter"
+            elif cmd == 'dc':
+                if len(params) == 0:
+                    out = self._input_func(out, params, self.device.toggle_pulse_generator,
+                                           self.converter.set_title, self.labels[1], self.device,
+                                           ["pulse_generator_dc_converter_status"])
+                elif len(params) == 1:
+                    params = [params[0].lower() == 'on']
+                    out = self._input_func(out, params, self.device.set_pulse_generator,
+                                           self.converter.set_title, self.labels[1], self.device,
+                                           ["pulse_generator_dc_converter_status"])
+                else:
+                    out = "Dc: too many parameters, expected 0 or 1"
+            elif cmd == 'trigger':
+                if len(params) == 0:
+                    out = self._input_func(out, params, self.device.trigger_pulse_generator,
+                                           self.pulse_generation.set_title, self.labels[2], self.device,
+                                           ["pulse_generator_triggered"])
+                else:
+                    out = "Trigger: Too many parameters, expected 0"
+            elif cmd == 'nplets':
+                if len(params) == 1:
+                    new_params = [int(params[0])]
+                    out = self._input_func(out, new_params, self.device.set_num_nplets,
+                                           self.num_nplet.set_title, self.labels[3], self.device,
+                                           ["num_nplets"])
+                else:
+                    out = "Number of n-plets: incorrent number of parameters, expected one"
+            elif cmd == 'time_between':
+                if len(params) == 1:
+                    new_params = [int(params[0])]
+                    out = self._input_func(out, new_params, self.device.set_time_between,
+                                           self.time_between.set_title, self.labels[4], self.device,
+                                           ["time_between"])
+                else:
+                    out = "Time between: incorrent number of parameters, expected one"
+            elif cmd == 'repetition_rate':
+                if len(params) == 1:
+                    new_params = [int(params[0])]
+                    out = self._input_func(out, new_params, self.device.set_repetition_rate,
+                                           self.repetition_rate.set_title, self.labels[5], self.device,
+                                           ["repetition_rate"])
+                else:
+                    out = "Repetition rate: incorrent number of parameters, expected one"
+            elif cmd == 'delay':
+                if len(params) == 1:
+                    new_params = [int(params[0])]
+                    out = self._input_func(out, new_params, self.device.set_delay,
+                                           self.delay.set_title, self.labels[6], self.device,
+                                           ["delay"])
+                else:
+                    out = "Delay: incorrent number of parameters, expected one"
+            elif cmd == 'widths':
+                if 0 <= len(params) <= 24:
+                    new_params = [[int(i) for i in params]]
+                    out = self._input_func(out, new_params, self.device.set_pulse_width,
+                                           self.widths.set_title, self.labels[7], self.device,
+                                           ["pulse_widths"])
+                else:
+                    out = "widths: incorrect number of parameters"
+            elif cmd == 'amplitudes':
+                if 0 <= len(params) <= 24:
+                    new_params = [[int(i) for i in params]]
+                    out = self._input_func(out, new_params, self.device.set_amplitude,
+                                           self.amplitudes.set_title, self.labels[8], self.device,
+                                           ["pulse_amplitudes"])
+                    self.amplitudes.set_title(self.labels[8].format(self._calculate_amplitudes(
+                        self.device.pulse_amplitudes, self.device.current_range)))
+                else:
+                    out = "amplitudes: incorrect number of parameters"
+            elif cmd == 'output':
+                if 0 <= len(params) <= 24:
+                    new_params = []
+                    for pulse in params:
+                        channels = pulse.split(',')
+                        new_channels = [int(i) for i in channels]
+                        new_params.append(new_channels)
+                    out = self._input_func(out, [new_params], self.device.set_pulses_unipolar,
+                                           self.outputs.set_title, self.labels[9], self.device,
+                                           ["output_channels"])
+                else:
+                    out = "outputs: incorrect number of parameters"
+            elif cmd == 'pairs':
+                if 0 <= len(params) <= 24:
+                    new_params = []
+                    for pulse in params:
+                        pair = pulse.split(';')
 
-                    p1 = [int(i) for i in pair[0].split(',')]
-                    p2 = [int(i) for i in pair[1].split(',')]
-                    new_params.append((p1, p2))
-                logging.debug(new_params)
-                out = self._input_func(out, [new_params], self.device.set_pulses_bipolar,
-                                       self.pairs.set_title, self.labels[10], self.device,
-                                       ["channel_pairs"])
+                        p1 = [int(i) for i in pair[0].split(',')]
+                        p2 = [int(i) for i in pair[1].split(',')]
+                        new_params.append((p1, p2))
+                    logging.debug(new_params)
+                    out = self._input_func(out, [new_params], self.device.set_pulses_bipolar,
+                                           self.pairs.set_title, self.labels[10], self.device,
+                                           ["channel_pairs"])
+                else:
+                    out = "pairs: incorrect number of parameters"
+            elif cmd == 'electrode':
+                if len(params) == 1:
+                    out = self._input_func(out, params, self.device.set_common_electrode,
+                                           self.electrode.set_title, self.labels[12], self.device,
+                                           ["common_electrode"])
+                else:
+                    out = "Electrode: incorrent number of parameters, expected one"
             else:
-                out = "pairs: incorrect number of parameters"
-        elif cmd == 'electrode':
-            if len(params) == 1:
-                out = self._input_func(out, params, self.device.set_common_electrode,
-                                       self.electrode.set_title, self.labels[12], self.device,
-                                       ["common_electrode"])
-            else:
-                out = "Electrode: incorrent number of parameters, expected one"
-        else:
-            out = "Command not found: {}".format(out)
-        return out
+                out = "Command not found: {}".format(out)
 
-    def send_command(self):
+            res = self.device.check_nplet_parameter_validity(self.device.pulse_widths,
+                                                             self.device.time_between, self.device.repetition_rate)
+            self.valid.set_title(self.labels[13].format(res))
+
+            return out
+        except Exception as e:
+            logging.error(e)
+            return "Something went wrong, please try again. Command used: {}".format(text)
+
+    def send_command(self):q
         text = self.command_prompt.get()
         out = self._parse_input(text)
         self.command_prompt.clear()
