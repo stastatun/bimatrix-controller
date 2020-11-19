@@ -1,8 +1,8 @@
-import serial
 import logging
 import time
-
 from typing import List, Tuple
+
+import serial
 
 
 class Controller:
@@ -88,8 +88,8 @@ class Controller:
             time_between = self.time_between
         if repetition_rate is None:
             repetition_rate = self.repetition_rate
-        t1 = sum(pulse_widths)*10**-6 + (len(pulse_widths)-1)*time_between*10**-3
-        t2 = 1/repetition_rate
+        t1 = sum(pulse_widths) * 10 ** -6 + (len(pulse_widths) - 1) * time_between * 10 ** -3
+        t2 = 1 / repetition_rate
         return t1 <= t2
 
     def __str__(self) -> str:
@@ -120,7 +120,7 @@ Device state (Battery: {}%):
         self.serial_.write(cmd)
         res = self.read_response_()
         end = time.time()
-        logging.info(end-start)
+        logging.info(end - start)
 
         return self._res_to_bool(res)
 
@@ -274,7 +274,7 @@ Device state (Battery: {}%):
         if not all(50 <= i <= 1000 or i == 0 for i in widths):
             raise ValueError("Pulse widths must be between 50 and 1000")
 
-        w_pad = widths + (24-len(widths))*[0]
+        w_pad = widths + (24 - len(widths)) * [0]
         cmd = self._to_bytes('>PW;')
 
         for idx, num in enumerate(w_pad):
@@ -358,7 +358,7 @@ Device state (Battery: {}%):
                 for j, c in enumerate(channels):
                     if c == 0:
                         continue
-                    value += pow(2, c-1)
+                    value += pow(2, c - 1)
                 cmd += value.to_bytes(3, byteorder='big')
 
         cmd += self._to_bytes('<')
@@ -377,7 +377,7 @@ Device state (Battery: {}%):
 
         cmd = self._to_bytes(">CA;")
         if value_type == 'hex':
-            padded_pairs = channel_pairs + (24 - len(channel_pairs))*[('000000', '000000')]
+            padded_pairs = channel_pairs + (24 - len(channel_pairs)) * [('000000', '000000')]
             for x, y in padded_pairs:
                 cathode = bytes(bytearray.fromhex(x))
                 anode = bytes(bytearray.fromhex(y))

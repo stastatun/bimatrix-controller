@@ -1,9 +1,10 @@
-import serial
 import argparse
 import logging
 
-from controller import Controller
+import serial
+
 from TUI import TUI
+from controller import Controller
 
 BAUD_RATE = 921600
 DATA_BITS = serial.EIGHTBITS

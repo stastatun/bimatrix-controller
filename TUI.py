@@ -1,10 +1,9 @@
+import logging
 from typing import Callable
-
-from controller import Controller
 
 import py_cui
 
-import logging
+from controller import Controller
 
 
 class TUI:
@@ -347,7 +346,7 @@ class TUI:
             logging.error(e)
             return "Something went wrong, please try again. Command used: {}".format(text)
 
-    def send_command(self):q
+    def send_command(self):
         text = self.command_prompt.get()
         out = self._parse_input(text)
         self.command_prompt.clear()
