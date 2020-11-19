@@ -46,11 +46,11 @@ class TUI:
             device.num_nplets if device.num_nplets != 0 else "0 (Infinite)"),
             3, 0, column_span=span, center=False)
         self.electrode = self.master.add_block_label(self.labels[12].format(device.common_electrode),
-                                                        0, 5, column_span=span, center=False)
+                                                     0, 5, column_span=span, center=False)
         self.time_between = self.master.add_block_label(self.labels[4].format(device.time_between),
                                                         1, 5, column_span=span, center=False)
         self.repetition_rate = self.master.add_block_label(self.labels[5].format(device.repetition_rate),
-                                                        2, 5, column_span=span, center=False)
+                                                           2, 5, column_span=span, center=False)
         self.delay = self.master.add_block_label(self.labels[6].format(device.delay),
                                                  3, 5, column_span=span, center=False)
         self.widths = self.master.add_block_label(self.labels[7].format(device.pulse_widths),
@@ -76,8 +76,8 @@ class TUI:
             "time_between <time>: set time between pulses in ms (1-255)",
             "repetition_rate <rate>: set repetition rate in nplets-per-second (1-400)",
             "delay <delay>: set stimulation delay after trigger in ms (0 - 16777215)",
-            "pulse_widths [widths]: set width for every pulse, each width separated by space",
-            "pulse_amplitudes [amplitudes]: set amplitude for every pulse, list of comma separated values. " +
+            "widths [widths]: set width for every pulse, each width separated by space",
+            "amplitudes [amplitudes]: set amplitude for every pulse, list of comma separated values. " +
             "high: x/10 mA, low: x/100 mA",
             "output [channels]: list of channels in format x,y,z;i,j,k",
             "pairs [channels]: list of channels pairs in format x;y x;y",
@@ -89,7 +89,70 @@ class TUI:
 
         self.command_prompt.add_key_command(py_cui.keys.KEY_ENTER, self.send_command)
 
+        self.master.add_key_command(py_cui.keys.KEY_A_LOWER, self.increase_amplitudes)
+        self.master.add_key_command(py_cui.keys.KEY_Z_LOWER, self.decrease_amplitudes)
+
+        self.master.add_key_command(py_cui.keys.KEY_S_LOWER, self.increase_widths)
+        self.master.add_key_command(py_cui.keys.KEY_X_LOWER, self.decrease_widths)
+
+        self.master.add_key_command(py_cui.keys.KEY_D_LOWER, self.increase_repetition_rate)
+        self.master.add_key_command(py_cui.keys.KEY_C_LOWER, self.decrease_repetition_rate)
+
+        self.master.add_key_command(py_cui.keys.KEY_F_LOWER, self.increase_time_between)
+        self.master.add_key_command(py_cui.keys.KEY_V_LOWER, self.decrease_time_between)
+
         self.master.start()
+
+    def change_amplitudes(self, step=1):
+        new_amplitudes = [[a + step for a in self.device.pulse_amplitudes]]
+        self._input_func("change amplitude by step of {}".format(step), new_amplitudes,
+                         self.device.set_amplitude, self.amplitudes.set_title,
+                         self.labels[8], self.device, ["pulse_amplitudes"])
+        self.amplitudes.set_title(self.labels[8].format(self._calculate_amplitudes(
+            self.device.pulse_amplitudes, self.device.current_range)))
+
+    def increase_amplitudes(self):
+        self.change_amplitudes(step=1)
+
+    def decrease_amplitudes(self):
+        self.change_amplitudes(step=-1)
+
+    def change_pulse_widths(self, step=1):
+        new_widths = [[w + step for w in self.device.pulse_widths]]
+        self._input_func("change amplitude by step of {}".format(step), new_widths,
+                         self.device.set_pulse_width, self.widths.set_title,
+                         self.labels[7], self.device, ["pulse_widths"]),
+
+    def increase_widths(self):
+        self.change_pulse_widths(step=1)
+
+    def decrease_widths(self):
+        self.change_pulse_widths(step=-1)
+
+    def change_repetition_rate(self, step=1):
+        new_params = [self.device.repetition_rate + step]
+        self._input_func("Change repetion rate by step of {}".format(step), new_params,
+                         self.device.set_repetition_rate, self.repetition_rate.set_title,
+                         self.labels[5], self.device, ["repetition_rate"])
+
+    def increase_repetition_rate(self):
+        self.change_repetition_rate(step=1)
+
+    def decrease_repetition_rate(self):
+        self.change_repetition_rate(step=-1)
+
+    def change_time_between(self, step=1):
+        new_params = [self.device.time_between + step]
+        self._input_func("Change time between by step of {}".format(step), new_params,
+                         self.device.set_time_between, self.time_between.set_title,
+                         self.labels[4], self.device, ["time_between"])
+
+    def increase_time_between(self):
+        self.change_time_between(step=1)
+
+    def decrease_time_between(self):
+        self.change_time_between(step=-1)
+
 
     @staticmethod
     def _bool_to_string(status: bool) -> str:
@@ -109,7 +172,8 @@ class TUI:
             new.append(i / div)
         return new
 
-    def _input_func(self, command: str, params: list, device_func: Callable,
+    @staticmethod
+    def _input_func(command: str, params: list, device_func: Callable,
                     set_title: Callable, title_base: str, device: Controller, format_params: list):
         try:
             succ = device_func(*params)
@@ -155,7 +219,8 @@ class TUI:
                 out = "Current range command requires one parameter"
         elif cmd == 'voltage':
             if len(params) == 1:
-                out = self._input_func(out, params, self.device.set_voltage,
+                new_params = [int(params[0])]
+                out = self._input_func(out, new_params, self.device.set_voltage,
                                        self.stats.set_title, self.labels[0], self.device,
                                        ["current_range", "voltage", "mode"])
             else:
@@ -211,22 +276,24 @@ class TUI:
                                        ["delay"])
             else:
                 out = "Delay: incorrent number of parameters, expected one"
-        elif cmd == 'pulse_widths':
+        elif cmd == 'widths':
             if 0 <= len(params) <= 24:
                 new_params = [[int(i) for i in params]]
                 out = self._input_func(out, new_params, self.device.set_pulse_width,
                                        self.widths.set_title, self.labels[7], self.device,
                                        ["pulse_widths"])
             else:
-                out = "pulse_widths: incorrect number of parameters"
-        elif cmd == 'pulse_amplitudes':
+                out = "widths: incorrect number of parameters"
+        elif cmd == 'amplitudes':
             if 0 <= len(params) <= 24:
                 new_params = [[int(i) for i in params]]
                 out = self._input_func(out, new_params, self.device.set_amplitude,
                                        self.amplitudes.set_title, self.labels[8], self.device,
                                        ["pulse_amplitudes"])
+                self.amplitudes.set_title(self.labels[8].format(self._calculate_amplitudes(
+                    self.device.pulse_amplitudes, self.device.current_range)))
             else:
-                out = "pulse_amplitudes: incorrect number of parameters"
+                out = "amplitudes: incorrect number of parameters"
         elif cmd == 'output':
             if 0 <= len(params) <= 24:
                 new_params = []
