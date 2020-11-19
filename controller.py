@@ -1,5 +1,6 @@
 import serial
 import logging
+import time
 
 from typing import List, Tuple
 
@@ -9,7 +10,6 @@ class Controller:
     def __init__(self, device, baud_rate=921600, data_bits=serial.EIGHTBITS, parity=serial.PARITY_NONE,
                  stop_bits=serial.STOPBITS_ONE, rtscts=True, logging_level=logging.WARNING, log_file=""):
         """ Initialize the controller"""
-
         logging.basicConfig(filename=log_file, level=logging_level)
 
         self.current_range = 'high'  # high or low
@@ -116,9 +116,11 @@ Device state (Battery: {}%):
 
     def send_command(self, cmd: bytes) -> bool:
         logging.debug(cmd)
-
+        start = time.time()
         self.serial_.write(cmd)
         res = self.read_response_()
+        end = time.time()
+        logging.info(end-start)
 
         return self._res_to_bool(res)
 
