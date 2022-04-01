@@ -8,26 +8,45 @@ import serial
 class Controller:
 
     def __init__(self, device, baud_rate=921600, data_bits=serial.EIGHTBITS, parity=serial.PARITY_NONE,
-                 stop_bits=serial.STOPBITS_ONE, rtscts=True, logging_level=logging.WARNING, log_file=""):
+                 stop_bits=serial.STOPBITS_ONE, rtscts=True, logging_level=logging.WARNING, log_file="", settings={}):
         """ Initialize the controller"""
         logging.basicConfig(filename=log_file, level=logging_level)
 
-        self.current_range = 'high'  # high or low
-        self.voltage = 150  # range 70V - 150V
-        self.pulse_generator_dc_converter_status = False
-        self.num_nplets = 0  # 0 (infinity) - 16777215
-        self.time_between = 1  # 1ms - 255ms
-        self.delay = 0  # 0ms - 16777215ms
-        self.pulse_generator_triggered = False
-        self.battery_state = -1
-        self.repetition_rate = 50  # 1 - 400pps (pulses per second)
-        self.pulse_widths = [250]  # 50 - 1000 microseconds
-        self.pulse_amplitudes = [100]  # w = 100 - 1000, unit w/10 mA (High), w/100 mA (Low)
-        self.mode = 'none'  # unipolar or bipolar
-        self.common_electrode = 'cathode'  # cathode or anode
-        self.output_channels = []
-        self.channel_pairs = []
-        self.is_short_protocol = False
+        if not settings: 
+            self.current_range = 'high'  # high or low
+            self.voltage = 150  # range 70V - 150V
+            self.pulse_generator_dc_converter_status = False
+            self.num_nplets = 0  # 0 (infinity) - 16777215
+            self.time_between = 1  # 1ms - 255ms
+            self.delay = 0  # 0ms - 16777215ms
+            self.pulse_generator_triggered = False
+            self.battery_state = -1
+            self.repetition_rate = 50  # 1 - 400pps (pulses per second)
+            self.pulse_widths = [250]  # 50 - 1000 microseconds
+            self.pulse_amplitudes = [100]  # w = 100 - 1000, unit w/10 mA (High), w/100 mA (Low)
+            self.mode = 'none'  # unipolar or bipolar
+            self.common_electrode = 'cathode'  # cathode or anode
+            self.output_channels = []
+            self.channel_pairs = []
+            self.is_short_protocol = False
+        else:
+            self.current_range = settings['current_range']  # high or low
+            self.voltage = settings['voltage']  # range 70V - 150V
+            self.pulse_generator_dc_converter_status = settings['dc_converter']
+            self.num_nplets = settings['num_nplets']  # 0 (infinity) - 16777215
+            self.time_between = settings['time_between']  # 1ms - 255ms
+            self.delay = settings['delay']  # 0ms - 16777215ms
+            self.pulse_generator_triggered = settings['pulse_generator']
+            self.battery_state = settings['battery_state']
+            self.repetition_rate =  settings['repetition_rate'] # 1 - 400pps (pulses per second)
+            self.pulse_widths = settings['widths']  # 50 - 1000 microseconds
+            self.pulse_amplitudes = settings['amplitudes']  # w = 100 - 1000, unit w/10 mA (High), w/100 mA (Low)
+            self.mode = settings['mode']  # unipolar or bipolar
+            self.common_electrode = settings['common_electrode']  # cathode or anode
+            self.output_channels = settings['output_channels']
+            self.channel_pairs = settings['pairs']
+            self.is_short_protocol = settings['is_short_protocol']
+ 
 
         try:
             self.serial_ = serial.Serial(device, baud_rate, timeout=5, parity=parity, rtscts=rtscts, stopbits=stop_bits,

@@ -1,0 +1,12 @@
+battery
+range low 
+mode bipolar
+voltage 150
+dc
+nplets 0
+time_between 10
+repetition_rate 50
+pairs 3;4
+widths 100
+amplitudes 100
+trigger
