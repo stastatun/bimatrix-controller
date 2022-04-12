@@ -282,7 +282,6 @@ class AmplitudeSwipe(QWidget):
         res = self.device.set_repetition_rate(int(self.freq.text()))
         res = self.device.set_pulse_width([int(self.widths.text())])
         # first element of active channels cathode, second anode
-<<<<<<< HEAD
         cathodes, anodes = self.channels.get_active_channels()
         try:
             self.electrodes = [cathodes[0], anodes[0]]
@@ -294,21 +293,6 @@ class AmplitudeSwipe(QWidget):
                 self.settings_status.setText("Settings OK")
         except:
             self.stim_status.setText("Please select a cathode and an anode")
-=======
-        electrodes = self.channels.get_active_channels()
-        self.electrodes = electrodes
-        if len(electrodes) < 2:
-            # Tähän throwin sijaan jotain järkevää
-            raise Exception("Please select two electrodes")
-        electrodes = [([electrodes[0]], [electrodes[1]])]
-        print(electrodes)
-        res = self.device.set_pulses_bipolar(electrodes)
-        if not res:
-            self.settings_status.setText("Settings failed")
-        else:
-            self.settings_status.setText("Settings OK")
->>>>>>> b44c0a704f6061067e9f2a41074fbc6c40116ae1
-
     def trigger_sweep(self):
         """
         Does amplitude swipe from starting amp to ending amp with step of self.step
@@ -400,7 +384,6 @@ class FrequencySwipe(QWidget):
         res = self.device.set_num_nplets(int(self.num_nplets.text()))
         res = self.device.set_amplitude([int(float(self.amplitudes.text()) * 100)])
         res = self.device.set_pulse_width([int(self.widths.text())])
-<<<<<<< HEAD
         cathodes, anodes = self.channels.get_active_channels()
         try:
             self.electrodes = [cathodes[0], anodes[0]]
@@ -412,19 +395,6 @@ class FrequencySwipe(QWidget):
                 self.settings_status.setText("Settings OK")
         except:
             self.stim_status.setText("Please select a cathode and an anode")
-=======
-        electrodes = self.channels.get_active_channels()
-        self.electrodes = electrodes
-        if len(electrodes) < 2:
-            raise Exception("Please select two electrodes")
-        electrodes = [([electrodes[0]], [electrodes[1]])]
-        res = self.device.set_pulses_bipolar(electrodes)
-        if not res:
-            self.settings_status.setText("Settings failed")
-        else:
-            self.settings_status.setText("Settings OK")
->>>>>>> b44c0a704f6061067e9f2a41074fbc6c40116ae1
-
     def trigger_sweep(self):
         self.current_freq = int(self.start.text())
         ending_freq = int(self.end.text())
