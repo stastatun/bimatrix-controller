@@ -107,7 +107,7 @@ class ChannelSwipe(QWidget):
         self.device = device
         self.layout = QFormLayout()
         # settings
-        self.voltage = QLineEdit("150")
+        self.voltage = QLineEdit("70")
         self.num_nplets = QLineEdit("5")
         self.amplitudes = QLineEdit("1")
         self.widths = QLineEdit("1000")
@@ -148,7 +148,7 @@ class ChannelSwipe(QWidget):
         res = True
         res = self.device.set_voltage(int(self.voltage.text()))
         res = self.device.set_num_nplets(int(self.num_nplets.text()))
-        res = self.device.amplitude(int(self.amplitudes.text()))
+        res = self.device.set_amplitude([int(float(self.amplitudes.text()) * 100)])
         res = self.device.set_repetition_rate(int(self.freq.text()))
         res = self.device.set_pulse_width([int(self.widths.text())])
         if not res:
@@ -204,7 +204,8 @@ class ChannelSwipe(QWidget):
             self.stim_status.setText(f"Done")
 
         if not self.between.text():
-            with open(f"{datetime.now().isoformat()}.csv", "w") as file:
+            fname = f"./mittaukset/{datetime.now().isoformat().replace(':', '')}.csv"
+            with open(fname, "w") as file:
                 file.write("voltage,nplets,freq,width,amplitude,cathode,anode,result\n")
                 file.write(self.tofile)
                 self.tofile = ""
@@ -225,7 +226,7 @@ class ChannelSwipe(QWidget):
         If event loop is active, write stimulation parameters and result of stimulation (keypress) to string
         """
         if self.loop:
-            self.tofile += f"{self.voltage.text()},{self.num_nplets.text()},{self.freq.text()},{self.widths.text()},{self.amplitudes.text()},{self.electrodes[0]},{self.electrodes[1]},{event.text()}"
+            self.tofile += f"{self.voltage.text()},{self.num_nplets.text()},{self.freq.text()},{self.widths.text()},{self.amplitudes.text()},{self.electrodes[0][0]},{self.electrodes[0][1]},{event.text()}"
             self.tofile += "\n"
             self.loop.quit()
 
@@ -235,7 +236,7 @@ class AmplitudeSwipe(QWidget):
         self.device = device
         self.layout = QFormLayout()
         # settings
-        self.voltage = QLineEdit("150")
+        self.voltage = QLineEdit("70")
         self.num_nplets = QLineEdit("5")
         self.freq = QLineEdit("50")
         self.widths = QLineEdit("1000")
@@ -281,6 +282,7 @@ class AmplitudeSwipe(QWidget):
         res = self.device.set_repetition_rate(int(self.freq.text()))
         res = self.device.set_pulse_width([int(self.widths.text())])
         # first element of active channels cathode, second anode
+<<<<<<< HEAD
         cathodes, anodes = self.channels.get_active_channels()
         try:
             self.electrodes = [cathodes[0], anodes[0]]
@@ -292,6 +294,20 @@ class AmplitudeSwipe(QWidget):
                 self.settings_status.setText("Settings OK")
         except:
             self.stim_status.setText("Please select a cathode and an anode")
+=======
+        electrodes = self.channels.get_active_channels()
+        self.electrodes = electrodes
+        if len(electrodes) < 2:
+            # Tähän throwin sijaan jotain järkevää
+            raise Exception("Please select two electrodes")
+        electrodes = [([electrodes[0]], [electrodes[1]])]
+        print(electrodes)
+        res = self.device.set_pulses_bipolar(electrodes)
+        if not res:
+            self.settings_status.setText("Settings failed")
+        else:
+            self.settings_status.setText("Settings OK")
+>>>>>>> b44c0a704f6061067e9f2a41074fbc6c40116ae1
 
     def trigger_sweep(self):
         """
@@ -299,8 +315,8 @@ class AmplitudeSwipe(QWidget):
         Sweep is done with intervals of self.between
         If self.between is none, function waits for a key press after each stimulation, and finally writes the results in a file
         """
-        self.current_amp = float(self.start.text()) * 100
-        ending_amp = float(self.end.text()) * 100
+        self.current_amp = int(float(self.start.text()) * 100)
+        ending_amp = int(float(self.end.text()) * 100)
         step_amp = int(float(self.step.text()) * 100)
         self.update()
         while self.current_amp <= ending_amp:
@@ -320,7 +336,7 @@ class AmplitudeSwipe(QWidget):
         self.loop = None
         self.stim_status.setText(f"Done")
         if not self.between.text():
-            with open(f"{datetime.now().isoformat()}.csv", "w") as file:
+            with open(f"{datetime.now().isoformat().replace(':','')}.csv", "w") as file:
                 file.write("voltage,nplets,freq,width,amplitude,cathode,anode,result\n")
                 file.write(self.tofile)
                 self.tofile = ""
@@ -337,9 +353,10 @@ class AmplitudeSwipe(QWidget):
 class FrequencySwipe(QWidget):
     def __init__(self, channels, device):
         super().__init__()
+        self.device = device
         self.layout = QFormLayout()
         # settings
-        self.voltage = QLineEdit("150")
+        self.voltage = QLineEdit("70")
         self.num_nplets = QLineEdit("5")
         self.amplitudes = QLineEdit("1")
         self.widths = QLineEdit("1000")
@@ -381,8 +398,9 @@ class FrequencySwipe(QWidget):
         res = True
         res = self.device.set_voltage(int(self.voltage.text()))
         res = self.device.set_num_nplets(int(self.num_nplets.text()))
-        res = self.device.amplitude(int(self.amplitudes.text()))
+        res = self.device.set_amplitude([int(float(self.amplitudes.text()) * 100)])
         res = self.device.set_pulse_width([int(self.widths.text())])
+<<<<<<< HEAD
         cathodes, anodes = self.channels.get_active_channels()
         try:
             self.electrodes = [cathodes[0], anodes[0]]
@@ -394,6 +412,18 @@ class FrequencySwipe(QWidget):
                 self.settings_status.setText("Settings OK")
         except:
             self.stim_status.setText("Please select a cathode and an anode")
+=======
+        electrodes = self.channels.get_active_channels()
+        self.electrodes = electrodes
+        if len(electrodes) < 2:
+            raise Exception("Please select two electrodes")
+        electrodes = [([electrodes[0]], [electrodes[1]])]
+        res = self.device.set_pulses_bipolar(electrodes)
+        if not res:
+            self.settings_status.setText("Settings failed")
+        else:
+            self.settings_status.setText("Settings OK")
+>>>>>>> b44c0a704f6061067e9f2a41074fbc6c40116ae1
 
     def trigger_sweep(self):
         self.current_freq = int(self.start.text())
@@ -416,7 +446,7 @@ class FrequencySwipe(QWidget):
         self.loop = None
         self.stim_status.setText("Done")
         if not self.between.text():
-            with open(f"{datetime.now().isoformat()}.csv", "w") as file:
+            with open(f"{datetime.now().isoformat().replace(':', '')}.csv", "w") as file:
                 file.write("voltage,nplets,freq,width,amplitude,cathode,anode,result\n")
                 file.write(self.tofile)
                 self.tofile = ""
@@ -516,6 +546,7 @@ if __name__ == "__main__":
     try:
         # hardcodettu portti koska ei ginost
         device = Controller("COM4")
+        set_base_settings(device)
     except:
         device = None
     app = QApplication([])
