@@ -177,7 +177,7 @@ class ChannelSwipe(QWidget):
         if not pairs:
             raise Exception("Please select at least one electrode pair")
 
-        if not self.between.text():
+        if self.between.text():
             self.thread = QThread()
             self.worker = Worker(pairs, float(self.between.text()))
             self.worker.moveToThread(self.thread)
@@ -203,8 +203,7 @@ class ChannelSwipe(QWidget):
                 self.loop = None
             self.stim_status.setText(f"Done")
 
-        if not self.between.text():
-            fname = f"./mittaukset/{datetime.now().isoformat().replace(':', '')}.csv"
+            fname = f"./mittaukset/channelsweep_{datetime.now().isoformat().replace(':', '')}.csv"
             with open(fname, "w") as file:
                 file.write("voltage,nplets,freq,width,amplitude,cathode,anode,result\n")
                 file.write(self.tofile)
@@ -216,9 +215,10 @@ class ChannelSwipe(QWidget):
         """
         pairs = []
         cathodes, anodes = self.channels.get_active_channels()
+
         for i in range(len(cathodes)):
             for j in range(len(anodes)):
-                pairs.append(([cathodes[i],anodes[j]]))
+                pairs.append([([cathodes[i]],[anodes[j]])])
         return pairs
 
     def keyPressEvent(self, event):
@@ -285,7 +285,7 @@ class AmplitudeSwipe(QWidget):
         cathodes, anodes = self.channels.get_active_channels()
         try:
             self.electrodes = [cathodes[0], anodes[0]]
-            electrodes = [(self.electrodes[0], self.electrodes[1])]
+            electrodes = [([self.electrodes[0]], [self.electrodes[1]])]
             res = self.device.set_pulses_bipolar(electrodes)
             if not res:
                 self.settings_status.setText("Settings failed")
@@ -320,7 +320,7 @@ class AmplitudeSwipe(QWidget):
         self.loop = None
         self.stim_status.setText(f"Done")
         if not self.between.text():
-            with open(f"{datetime.now().isoformat().replace(':','')}.csv", "w") as file:
+            with open(f"mittaukset/ampsweep_{datetime.now().isoformat().replace(':','')}.csv", "w") as file:
                 file.write("voltage,nplets,freq,width,amplitude,cathode,anode,result\n")
                 file.write(self.tofile)
                 self.tofile = ""
@@ -387,7 +387,7 @@ class FrequencySwipe(QWidget):
         cathodes, anodes = self.channels.get_active_channels()
         try:
             self.electrodes = [cathodes[0], anodes[0]]
-            electrodes = [(self.electrodes[0], self.electrodes[1])]
+            electrodes = [([self.electrodes[0]], [self.electrodes[1]])]
             res = self.device.set_pulses_bipolar(electrodes)
             if not res:
                 self.settings_status.setText("Settings failed")
@@ -416,7 +416,7 @@ class FrequencySwipe(QWidget):
         self.loop = None
         self.stim_status.setText("Done")
         if not self.between.text():
-            with open(f"{datetime.now().isoformat().replace(':', '')}.csv", "w") as file:
+            with open(f"mittaukset/freq_sweep{datetime.now().isoformat().replace(':', '')}.csv", "w") as file:
                 file.write("voltage,nplets,freq,width,amplitude,cathode,anode,result\n")
                 file.write(self.tofile)
                 self.tofile = ""
@@ -510,7 +510,7 @@ def set_base_settings(device):
     device.set_voltage(70) 
     device.set_pulse_generator(True)
     device.set_mode('bipolar')
-    device.set_delay(300)
+    device.set_delay(0)
     
 if __name__ == "__main__":
     try:
