@@ -107,12 +107,12 @@ class ChannelSwipe(QWidget):
         self.device = device
         self.layout = QFormLayout()
         # settings
-        self.voltage = QLineEdit("70")
-        self.num_nplets = QLineEdit("5")
-        self.amplitudes = QLineEdit("1")
+        self.voltage = QLineEdit("150")
+        self.num_nplets = QLineEdit("10")
+        self.amplitudes = QLineEdit("1.5")
         self.widths = QLineEdit("1000")
         self.freq = QLineEdit("50")
-        self.between = QLineEdit("0.5")
+        self.between = QLineEdit("1")
         #self.between = QLineEdit()
         self.layout.addRow("Voltage (V)", self.voltage)
         self.layout.addRow("Pulse repetitions", self.num_nplets)
